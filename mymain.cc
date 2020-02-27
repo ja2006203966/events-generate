@@ -9,233 +9,248 @@
 #include "Pythia8/Pythia.h"
 #include "fastjet/PseudoJet.hh"
 #include "fastjet/ClusterSequence.hh"
+#include "fastjet/JetDefinition.hh"
+#include "fastjet/PseudoJet.hh"
+#include "Pythia8Plugins/FastJet3.h"
+using namespace std;
 using namespace Pythia8;
+
 int main() {
+  // Number of events, generated and listed ones (for jets).
+  int  nEvent = 10000;
+  int nListJets = 3;
+  
+  // Select common parameters for SlowJet and FastJet analyses.
+  int    power   = -1;     // -1 = anti-kT; 0 = C/A; 1 = kT.
+  double R       = 0.4;    // Jet size.
+  double pTMin   = 500.0;    // Min jet pT.
+  double etaMax  = 2.0;    // Pseudorapidity range of detector.
+  int    select  = 2;      // Which particles are included?
+  int    massSet = 2;      // Which mass are they assumed to have?
+  
   // Generator. Process selection. Tevatron initialization. Histogram.
   Pythia pythia;
+  Event& event = pythia.event;
+  
   pythia.readString("Beams:eCM = 14000.");
   pythia.readString("WeakBosonAndParton:qqbar2gmZg = on");
-  int  nEvent = 10000;
-  bool doMPI  = true;
-
-
-  // Multiparton Interactions
-  if (doMPI == false) pythia.readString("PartonLevel:MPI = off");
+  
+ 
+  
 
   pythia.init();
 //========================================================================================
 
-  Hist pTZ("dN/dpTZ", 100, 0., 100.);
-  // Begin event loop. Generate event. Skip if error. List first one.
-  for (int iEvent = 0; iEvent < 1000; ++iEvent) {
-    if (!pythia.next()) continue;
-    // Loop over particles in event. Find last Z0 copy. Fill its pT.
-    int iZ = 0;
-    for (int i = 0; i < pythia.event.size(); ++i)
-      if (pythia.event[i].id() == 23) iZ = i;
-    pTZ.fill( pythia.event[iZ].pT() );
-  // End of event loop. Statistics. Histogram. Done.
-  }
-  pythia.stat();
-  cout << pTZ;
-//===========================================================================================
- 
+  // Set up SlowJet jet finder in native mode.
+  SlowJet slowJet( power, R, pTMin, etaMax, select, massSet, 0, false);
 
-  // Histograms
-  Hist dSigma1("1-jet cross-section (E_jet1 > 20 GeV)", 70, 0.0, 350.0);
-  Hist dSigma2("2-jet cross-section (E_jet2 > 20 GeV)", 38, 0.0, 190.0);
-  Hist dSigma3("3-jet cross-section (E_jet3 > 20 GeV)", 16, 0.0, 80.0);
-  Hist dSigma4("4-jet cross-section (E_jet4 > 20 GeV)",  7, 0.0, 35.0);
-  Hist *dSigmaHist[5] = { NULL, &dSigma1, &dSigma2, &dSigma3, &dSigma4 };
-  double dSigmaBin[5] = { 0.0, 350.0 / 70.0, 190.0 / 38.0,
-                          80.0 / 16.0, 35.0 / 7.0 };
+  // Set up SlowJet jet finder as a wrapper to the fjcore package.
+  // Note that this is now the default SlowJet constructor choice.
+  SlowJet fjCore( power, R, pTMin, etaMax, select, massSet, 0, true);
 
-  // Fastjet analysis - select algorithm and parameters
-  double Rparam = 0.4;
-  fastjet::Strategy               strategy = fastjet::Best;
-  fastjet::RecombinationScheme    recombScheme = fastjet::E_scheme;
-  fastjet::JetDefinition         *jetDef = NULL;
-  jetDef = new fastjet::JetDefinition(fastjet::antikt_algorithm, Rparam,
-                                      recombScheme, strategy);
-
-  // Fastjet input
+  // Set up FastJet jet finder.
+  //   one can use either explicitly use antikt, cambridge, etc., or
+  //   just use genkt_algorithm with specification of power
+  //fastjet::JetAlgorithm algorithm;
+  //if (power == -1)      algorithm = fastjet::antikt_algorithm;
+  //if (power ==  0)      algorithm = fastjet::cambridge_algorithm;
+  //if (power ==  1)      algorithm = fastjet::kt_algorithm;
+  //fastjet::JetDefinition jetDef(algorithm, R);
+  // there's no need for a pointer to the jetDef (it's a fairly small object)
+  fastjet::JetDefinition jetDef(fastjet::genkt_algorithm, R, power);
   std::vector <fastjet::PseudoJet> fjInputs;
 
-  // Statistics for later
-  int nEventAccept25[5] = { 0, 0, 0, 0, 0 };
-  int vetoCount[4] = { 0, 0, 0, 0 };
-  const char *vetoStr[] = { "ET(elec)", "|eta(elec)|",
-                            "ET(missing)", "deltaR(elec, jet)" };
-  bool firstEvent = true;
+  // Histograms.
+  Hist nJetsS("number of jets (SlowJet)", 100, -0.5, 99.5);
+  Hist nJetsC("number of jets, FJcore - SlowJet ", 99, -49.5, 49.5);
+  Hist nJetsF("number of jets, FastJet - SlowJet", 99, -49.5, 49.5);
+  Hist pTjetsS("pT for jets (SlowJet)", 100, 0., 500.);
+  Hist pTjetsC("pT for jets, FJcore - SlowJet ", 100, -10., 10.);
+  Hist pTjetsF("pT for jets, FastJet - SlowJet", 100, -10., 10.);
+  Hist etaJetsS("eta for jets (SlowJet)", 100, -5., 5.);
+  Hist phiJetsS("phi for jets (SlowJet)", 100, -M_PI, M_PI);
+  Hist RdistC("R distance FJcore to SlowJet ", 100, 0., 1.);
+  Hist RdistF("R distance FastJet to SlowJet", 100, 0., 1.);
+  Hist distJets("R distance between jets", 100, 0., 10.);
+  Hist pTdiff("pT difference between consecutive jets", 100, -100., 400.);
+  Hist nAna("multiplicity of analyzed event", 100, -0.5, 999.5);
+  Hist tGen("generation time as fn of multiplicity", 100, -0.5, 999.5);
+  Hist tSlow("SlowJet time as fn of multiplicity", 100, -0.5, 999.5);
+  Hist tCore("FJcore time as fn of multiplicity ", 100, -0.5, 999.5);
+  Hist tFast("FastJet time as fn of multiplicity", 100, -0.5, 999.5);
+  Hist tSlowGen("SlowJet/generation time as fn of multiplicity",
+    100, -0.5, 999.5);
+  Hist tCoreGen("FJcore/generation time as fn of multiplicity",
+    100, -0.5, 999.5);
+  Hist tFastGen("FastJet/generation time as fn of multiplicity",
+    100, -0.5, 999.5);
+  Hist tFastCore("FastJet/FJcore time as fn of multiplicity",
+    100, -0.5, 999.5);
 
   // Begin event loop. Generate event. Skip if error.
   for (int iEvent = 0; iEvent < nEvent; ++iEvent) {
+    clock_t befGen = clock();
     if (!pythia.next()) continue;
+    clock_t aftGen = clock();
 
-    // Need to find the electron from the W decay - cheat a bit here
-    // and find it from the W in the event record
-    int idxW = -1;
-    for (int i = pythia.event.size() - 1; i > 0; i--) {
-      if (pythia.event[i].idAbs() == 24) {
-        idxW = i;
-        break;
+    // Begin SlowJet analysis of jet properties. List first few.
+    clock_t befSlow = clock();
+    slowJet.analyze( pythia.event );
+    clock_t aftSlow = clock();
+    if (iEvent < nListJets) slowJet.list();
+
+    // Fill inclusive SlowJet jet distributions.
+    int nSlow = slowJet.sizeJet();
+    nJetsS.fill( nSlow );
+    for (int i = 0; i < nSlow; ++i) {
+      pTjetsS.fill( slowJet.pT(i) );
+      etaJetsS.fill( slowJet.y(i) );
+      phiJetsS.fill( slowJet.phi(i) );
+    }
+
+    // Fill distance between SlowJet jets.
+    for (int i = 0; i < nSlow - 1; ++i)
+    for (int j = i + 1; j < nSlow; ++j) {
+      double dY = slowJet.y(i)  - slowJet.y(j);
+      double dPhi = abs( slowJet.phi(i) - slowJet.phi(j) );
+      if (dPhi > M_PI) dPhi = 2. * M_PI - dPhi;
+      double dR = sqrt( pow2(dY) + pow2(dPhi) );
+      distJets.fill( dR );
+    }
+
+    // Fill pT-difference between SlowJet jets (to check ordering of list).
+    for (int i = 1; i < nSlow; ++i)
+      pTdiff.fill( slowJet.pT(i-1)- slowJet.pT(i) );
+
+    // Begin FJcore analysis of jet properties. List first few.
+    clock_t befCore = clock();
+    fjCore.analyze( pythia.event );
+    clock_t aftCore = clock();
+    if (iEvent < nListJets) fjCore.list();
+
+    // Fill distribution of fjCore jets relative to SlowJet ones.
+    int nCore = fjCore.sizeJet();
+    nJetsC.fill( nCore - nSlow);
+    if (nCore == nSlow) {
+      for (int i = 0; i < nCore; ++i) {
+        pTjetsC.fill( fjCore.pT(i) - slowJet.pT(i) );
+        double dist2 = pow2( fjCore.y(i) - slowJet.y(i))
+          + pow2( fjCore.phi(i) - slowJet.phi(i) );
+        RdistC.fill( sqrt(dist2) );
       }
     }
-    if (idxW == -1) {
-      cout << "Error: Could not find W" << endl;
-      continue;
-    }
 
-    // Find the electron from the W decay
-    int idxElec = idxW;
-    while(true) {
-      int daughter = pythia.event[idxElec].daughter1();
-      if   (daughter == 0) break;
-      else                 idxElec = daughter;
-    }
-    if (pythia.event[idxElec].idAbs() != 11 ||
-       !pythia.event[idxElec].isFinal()) {
-      cout << "Error: Found incorrect decay product of the W" << endl;
-      continue;
-    }
-
-    // Electron cuts
-    if (pythia.event[idxElec].pT() < 20.0) {
-      vetoCount[0]++;
-      continue;
-    }
-    if (abs(pythia.event[idxElec].eta()) > 1.1) {
-      vetoCount[1]++;
-      continue;
-    }
-
-    // Reset Fastjet input
+    // Begin FastJet analysis: extract particles from event record.
+    clock_t befFast = clock();
     fjInputs.resize(0);
+    Vec4   pTemp;
+    double mTemp;
+    int nAnalyze = 0;
+    for (int i = 0; i < event.size(); ++i) if (event[i].isFinal()) {
 
-    // Keep track of missing ET
-    Vec4 missingETvec;
+      // Require visible/charged particles inside detector.
+      if      (select > 2 &&  event[i].isNeutral() ) continue;
+      else if (select == 2 && !event[i].isVisible() ) continue;
+      if (etaMax < 20. && abs(event[i].eta()) > etaMax) continue;
 
-    // Loop over event record to decide what to pass to FastJet
-    for (int i = 0; i < pythia.event.size(); ++i) {
-      // Final state only
-      if (!pythia.event[i].isFinal())        continue;
+      // Create a PseudoJet from the complete Pythia particle.
+      fastjet::PseudoJet particleTemp = event[i];
 
-      // No neutrinos
-      if (pythia.event[i].idAbs() == 12 || pythia.event[i].idAbs() == 14 ||
-          pythia.event[i].idAbs() == 16)     continue;
+      // Optionally modify mass and energy.
+      pTemp = event[i].p();
+      mTemp = event[i].m();
+      if (massSet < 2) {
+        mTemp = (massSet == 0 || event[i].id() == 22) ? 0. : 0.13957;
+        pTemp.e( sqrt(pTemp.pAbs2() + mTemp*mTemp) );
+        particleTemp.reset_momentum( pTemp.px(), pTemp.py(),
+           pTemp.pz(), pTemp.e() );
+      }
 
-      // Only |eta| < 3.6
-      if (fabs(pythia.event[i].eta()) > 3.6) continue;
-
-      // Missing ET
-      missingETvec += pythia.event[i].p();
-
-      // Do not include the electron from the W decay
-      if (i == idxElec)                      continue;
-
-      // Store as input to Fastjet
-      fjInputs.push_back( fastjet::PseudoJet( pythia.event[i].px(),
-        pythia.event[i].py(), pythia.event[i].pz(), pythia.event[i].e() ) );
+      // Store acceptable particles as input to Fastjet.
+      // Conversion to PseudoJet is performed automatically
+      // with the help of the code in FastJet3.h.
+      fjInputs.push_back( particleTemp);
+      ++nAnalyze;
     }
 
-    if (fjInputs.size() == 0) {
-      cout << "Error: event with no final state particles" << endl;
-      continue;
-    }
-
-    // Run Fastjet algorithm
+    // Run Fastjet algorithm and sort jets in pT order.
     vector <fastjet::PseudoJet> inclusiveJets, sortedJets;
-    fastjet::ClusterSequence clustSeq(fjInputs, *jetDef);
-
-    // For the first event, print the FastJet details
-    if (firstEvent) {
-      cout << "Ran " << jetDef->description() << endl;
-      cout << "Strategy adopted by FastJet was "
-           << clustSeq.strategy_string() << endl << endl;
-      firstEvent = false;
-    }
-
-    // Extract inclusive jets sorted by pT (note minimum pT of 20.0 GeV)
-    inclusiveJets = clustSeq.inclusive_jets(20.0);
+    fastjet::ClusterSequence clustSeq(fjInputs, jetDef);
+    inclusiveJets = clustSeq.inclusive_jets(pTMin);
     sortedJets    = sorted_by_pt(inclusiveJets);
+    clock_t aftFast = clock();
 
-    // Missing ET cut
-    double missingET = missingETvec.pT();
-    if (missingET < 30.0) {
-      vetoCount[2]++;
-      continue;
+    // List first few FastJet jets and some info about them.
+    // Note: the final few columns are illustrative of what information
+    // can be extracted, but does not exhaust the possibilities.
+    if (iEvent < nListJets) {
+      cout << "\n --------  FastJet jets, p = " << setw(2) << power
+           << "  --------------------------------------------------\n\n "
+           << "  i         pT        y      phi  mult chgmult photons"
+           << "      hardest  pT in neutral " << endl
+           << "                                                       "
+           << "  constituent        hadrons " << endl;
+      for (int i = 0; i < int(sortedJets.size()); ++i) {
+        vector<fastjet::PseudoJet> constituents
+          = sortedJets[i].constituents();
+        fastjet::PseudoJet hardest
+          = fastjet::SelectorNHardest(1)(constituents)[0];
+        vector<fastjet::PseudoJet> neutral_hadrons
+          = ( fastjet::SelectorIsHadron()
+           && fastjet::SelectorIsNeutral())(constituents);
+        double neutral_hadrons_pt = join(neutral_hadrons).perp();
+        cout << setw(4) << i << fixed << setprecision(3) << setw(11)
+             << sortedJets[i].perp() << setw(9)  << sortedJets[i].rap()
+             << setw(9) << sortedJets[i].phi_std()
+             << setw(6) << constituents.size()
+             << setw(8) << fastjet::SelectorIsCharged().count(constituents)
+             << setw(8) << fastjet::SelectorId(22).count(constituents)
+             << setw(13) << hardest.user_info<Particle>().name()
+             << "     " << setw(10) << neutral_hadrons_pt << endl;
+      }
+      cout << "\n --------  End FastJet Listing  ------------------"
+           << "---------------------------------" << endl;
     }
 
-    // Keep track of jets with pT > 20/25 GeV
-    int  jetCount20 = 500, jetCount25 = 550;
-    // For the deltaR calculation below
-    bool vetoEvent = false;
-    fastjet::PseudoJet fjElec(pythia.event[idxElec].px(),
-                              pythia.event[idxElec].py(),
-                              pythia.event[idxElec].pz(),
-                              pythia.event[idxElec].e());
-
-    for (unsigned int i = 0; i < sortedJets.size(); i++) {
-      // Only count jets that have |eta| < 2.0
-      if (fabs(sortedJets[i].rap()) > 2.0) continue;
-      // Check distance between W decay electron and jets
-      if (fjElec.squared_distance(sortedJets[i]) < 0.52 * 0.52)
-        { vetoEvent = true; break; }
-
-      // Fill dSigma histograms and count jets with ET > 25.0
-      if (sortedJets[i].perp() > 25.0)
-        jetCount25++;
-
-      if (jetCount20 <= 3)
-        dSigmaHist[++jetCount20]->fill(sortedJets[i].perp());
+    // Fill distribution of FastJet jets relative to SlowJet ones.
+    int nFast = sortedJets.size();
+    nJetsF.fill( nFast - nSlow);
+    if (nFast == nSlow) {
+      for (int i = 0; i < nFast; ++i) {
+        pTjetsF.fill( sortedJets[i].perp() - slowJet.pT(i) );
+        double dist2 = pow2( sortedJets[i].rap() - slowJet.y(i))
+          + pow2( sortedJets[i].phi_std() - slowJet.phi(i));
+        RdistF.fill( sqrt(dist2) );
+      }
     }
-    if (vetoEvent) { vetoCount[3]++; continue; }
 
-    if (jetCount25 > 4) jetCount25 = 4;
-    for (int i = jetCount25; i >= 0; i--)
-      nEventAccept25[i]++;
+    // Comparison of time consumption by analyzed multiplicity.
+    nAna.fill( nAnalyze);
+    tGen.fill( nAnalyze, aftGen - befGen);
+    tSlow.fill( nAnalyze, aftSlow - befSlow);
+    tCore.fill( nAnalyze, aftCore - befCore);
+    tFast.fill( nAnalyze, aftFast - befFast);
 
   // End of event loop.
   }
 
-  // Statistics
+  // Statistics. Histograms.
   pythia.stat();
-
-  // Output histograms
-  double sigmapb = pythia.info.sigmaGen() * 1.0E9;
-
-  for (int i = 1; i <= 4; i++)
-    (*dSigmaHist[i]) = ((*dSigmaHist[i]) * sigmapb) / nEvent / dSigmaBin[i];
-  cout << dSigma1 << dSigma2 << dSigma3 << dSigma4 << endl;
-
-  // Output cross-sections
-  cout << "Jet algorithm is kT" << endl;
-  cout << "Multiparton interactions are switched "
-       << ( (doMPI) ? "on" : "off" ) << endl;
-  cout << endl << nEvent << " events generated. " << nEventAccept25[0]
-       << " events passed cuts." << endl;
-  cout << "Vetos:" << endl;
-  for (int i = 0; i < 4; i++)
-    cout << "  " << vetoStr[i] << " = " << vetoCount[i] << endl;
-
-  cout << endl << "Inclusive cross-sections (pb):" << endl;
-  for (int i = 0; i < 5; i++) {
-    cout << scientific << setprecision(3)
-         << "  " << i << "-jet - Pythia = "
-         << ((double) nEventAccept25[i] / (double) nEvent) * sigmapb;
-    cout << ", Experimental = " << expCrossSec[i];
-    if (i != 0) {
-      cout << scientific << setprecision(3)
-           << ", Pythia ratio to " << i - 1 << "-jet = "
-           << ((double) nEventAccept25[i] / (double) nEventAccept25[i - 1]);
-      cout << scientific << setprecision(3)
-           << ", Experimental ratio to " << i - 1 << "-jet = "
-           << expCrossSec[i] / expCrossSec[i - 1];
-    }
-    cout << endl;
-  }
+  tSlowGen  = tSlow / tGen;
+  tCoreGen  = tCore / tGen;
+  tFastGen  = tFast / tGen;
+  tFastCore = tFast / tCore;
+  tGen     /= nAna;
+  tSlow    /= nAna;
+  tCore    /= nAna;
+  tFast    /= nAna;
+  cout << nJetsS << nJetsC << nJetsF << pTjetsS << pTjetsC << pTjetsF
+       << etaJetsS << phiJetsS << RdistC << RdistF << distJets << pTdiff
+       << nAna << tGen << tSlow << tCore << tFast << tSlowGen << tCoreGen
+       << tFastGen << tFastCore;
 
   // Done.
-  delete jetDef;
+ 
+ 
   return 0;
 }
