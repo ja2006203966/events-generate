@@ -32,7 +32,7 @@ void print(std::vector<int> const &input)
 int main() {
   // Number of events, generated and listed ones (for jets).
   int  nEvent = 500;
-  int nListJets = 5;
+  int nListJets = 50;
   
   // Select common parameters for SlowJet and FastJet analyses.
   int    power   = -1;     // -1 = anti-kT; 0 = C/A; 1 = kT.
@@ -40,6 +40,9 @@ int main() {
   double pTMin   = 500.0;    // Min jet pT.
   double pTMax   = 550.0;    // Min jet pT.
   double etaMax  = 2.0;    // Pseudorapidity range of detector.
+  double d_R     = 0.2;    //matching radius for tagging jet 
+//  int    xjet    = 21;      //finding x jet (x=gluon or quark)
+//  int    xjetp              //out put x jet nth vector component
   int    select  = 2;      // Which particles are included?
   int    massSet = 2;      // Which mass are they assumed to have?
   
@@ -91,9 +94,9 @@ ofstream myfile;
     clock_t befFast = clock();
     fjInputs.resize(0);
     Vec4   pTemp;
-    double mTemp,ptmp,etamp,phimp,idmp,phi0,eta0,d_R=0.2;
-    	phi0  = event[6].phi();
-	eta0  = event[6].eta();
+    double mTemp,ptmp,etamp,phimp,idmp,phi0,eta0;
+    phi0  = event[6].phi();  //6 is gluon/quark event number
+    eta0  = event[6].eta();
     int nAnalyze = 0;
     //to find g for matching jets
     for (int i = 0; i < 10; ++i){
@@ -102,9 +105,15 @@ ofstream myfile;
 	phimp  = event[i].phi();
 	idmp  = event[i].id();
 	pTemp = event[i].p();
-	
-	if (iEvent<nListJets){
-		std::cout<<"\tno.\t\tid\t\tpz\t\tpt\t\teta\t\tphi\n"<<"\t"<<iEvent<<"\t\t"<<idmp<<"\t\t"<<pTemp.pz()<<"\t\t"<<ptmp<<"\t\t"<<etamp<<"\t\t"<<phimp<<endl;}
+//	if (idmp==xjet){
+//		phi0  = event[i].phi();
+//		eta0  = event[i].eta();
+//		break ;
+//	}
+
+//	if (iEvent<nListJets){
+//		std::cout<<"\tno.\t\tid\t\tpz\t\tpt\t\teta\t\tphi\n"<<"\t"<<iEvent<<"\t\t"<<idmp<<"\t\t"<<pTemp.pz()<<"\t\t"<<ptmp<<"\t\t"<<etamp<<"\t\t"<<phimp<<endl;
+		// }
     }
     for (int i = 0; i < event.size(); ++i) if (event[i].isFinal()) {
 
@@ -162,10 +171,14 @@ ofstream myfile;
 	//test
 	if(deltaR(phi0,sortedJets[i].phi(),eta0,sortedJets[i].eta())<d_R){
 		std::cout<<"gluonjet"<<endl;
-	}	
-	for (int j=0;j<int(constituents.size()); ++j)
-	{std::cout <<"\nJet_constituent\tpt\teta\tphi\tpID=\t" <<constituents[j].pt()<<"\t"<<constituents[j].eta()<<"\t"<<constituents[j].phi()<<"\t"<<constituents[j].user_info<Particle>().name()<<endl;}
-	
+		myfile<<"\n"<<sortedJets[i].pt()<<"\t"<<sortedJets[i].eta()<<"\t"<<sortedJets[i].phi()<<endl;
+		
+		for (int j=0;j<int(constituents.size()); ++j){
+			std::cout<<"\nJet_constituent\tpt\teta\tphi\tpID=\t"<<constituents[j].pt()<<"\t"<<constituents[j].eta()<<
+			"\t"<<constituents[j].phi()<<"\t"<<constituents[j].user_info<Particle>().name()<<endl;
+			myfile<<constituents[j].pt()<<"\t"<<constituents[j].eta()<<"\t"<<constituents[j].phi()<<endl;
+			}
+	}
         fastjet::PseudoJet hardest
           = fastjet::SelectorNHardest(1)(constituents)[0];
         vector<fastjet::PseudoJet> neutral_hadrons
@@ -173,20 +186,20 @@ ofstream myfile;
            && fastjet::SelectorIsNeutral())(constituents);
         double neutral_hadrons_pt = join(neutral_hadrons).perp();
 	
-        cout << setw(4) << i << fixed << setprecision(3) << setw(11)
-             << sortedJets[i].perp() << setw(9)  << sortedJets[i].rap()
-             << setw(9) << sortedJets[i].phi_std()
-             << setw(6) << constituents.size()
-             << setw(8) << fastjet::SelectorIsCharged().count(constituents)
-             << setw(8) << fastjet::SelectorId(22).count(constituents)
-             << setw(13) << hardest.user_info<Particle>().name()
-             << "     " << setw(10) << neutral_hadrons_pt << endl;
+//        cout << setw(4) << i << fixed << setprecision(3) << setw(11)
+//             << sortedJets[i].perp() << setw(9)  << sortedJets[i].rap()
+//             << setw(9) << sortedJets[i].phi_std()
+//             << setw(6) << constituents.size()
+//             << setw(8) << fastjet::SelectorIsCharged().count(constituents)
+//             << setw(8) << fastjet::SelectorId(22).count(constituents)
+//             << setw(13) << hardest.user_info<Particle>().name()
+//             << "     " << setw(10) << neutral_hadrons_pt << endl;
       }
       myfile << "\t";
       cout << "\n --------  End FastJet Listing  ------------------"
            << "---------------------------------" << endl;
     }
-
+  
    
 
  
