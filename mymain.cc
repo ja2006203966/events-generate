@@ -31,14 +31,14 @@ void print(std::vector<int> const &input)
 
 int main() {
   // Number of events, generated and listed ones (for jets).
-  int  nEvent = 500;
-  int nListJets = 50;
+  int  nEvent = 50000;
+  int nListJets = nEvent; //this value should <= nEvent
   
   // Select common parameters for SlowJet and FastJet analyses.
   int    power   = -1;     // -1 = anti-kT; 0 = C/A; 1 = kT.
   double R       = 0.4;    // Jet size.
   double pTMin   = 500.0;    // Min jet pT.
-  double pTMax   = 550.0;    // Min jet pT.
+  double pTMax   = 550.0;    // Max jet pT.(not applied)
   double etaMax  = 2.0;    // Pseudorapidity range of detector.
   double d_R     = 0.2;    //matching radius for tagging jet 
 //  int    xjet    = 21;      //finding x jet (x=gluon or quark)
@@ -51,8 +51,9 @@ int main() {
   Event& event = pythia.event;
   
   pythia.readString("Beams:eCM = 14000.");
-  pythia.readString("WeakBosonAndParton:qqbar2gmZg = on");
-  pythia.readString("PhaseSpace:pTHatMin = 500.");
+  pythia.readString("WeakBosonAndParton:qg2gmZq = on");  //"WeakBosonAndParton:qqbar2gmZg = on" for z+g,WeakBosonAndParton:qg2gmZq for z+q
+  pythia.readString("PhaseSpace:pTHatMin = 500.");  //PhaseSpace:pTHatMax   (default = -1.)
+  pythia.readString("PhaseSpace:pTHatMax = 550.");
  
   
 
@@ -60,7 +61,7 @@ int main() {
 //========================================================================================
   //open file
 ofstream myfile;
-  myfile.open ("myevents.txt");
+  myfile.open ("myeventsqq.txt");//qq for quark ,gg for gluon
 
 
 //========================================================================================
@@ -78,7 +79,8 @@ ofstream myfile;
   fastjet::JetDefinition jetDef(fastjet::genkt_algorithm, R, power);
   std::vector <fastjet::PseudoJet> fjInputs;
 
- std::cout<<"=========================================================================================================================================================================="<<endl;
+ std::cout<<"===================================================================eventsize========================================================================================================"<<
+		event.size()<<endl;
 
   // Begin event loop. Generate event. Skip if error.
   for (int iEvent = 0; iEvent < nEvent; ++iEvent) {
@@ -88,14 +90,15 @@ ofstream myfile;
 
    
    
-
+ std::cout<<"===================================================================eventsize========================================================================================================"<<
+		event.size()<<endl;
 
     // Begin FastJet analysis: extract particles from event record.
     clock_t befFast = clock();
     fjInputs.resize(0);
     Vec4   pTemp;
     double mTemp,ptmp,etamp,phimp,idmp,phi0,eta0;
-    phi0  = event[6].phi();  //6 is gluon/quark event number
+    phi0  = event[6].phi();  //6 is produce gluon/quark event index
     eta0  = event[6].eta();
     int nAnalyze = 0;
     //to find g for matching jets
@@ -105,15 +108,7 @@ ofstream myfile;
 	phimp  = event[i].phi();
 	idmp  = event[i].id();
 	pTemp = event[i].p();
-//	if (idmp==xjet){
-//		phi0  = event[i].phi();
-//		eta0  = event[i].eta();
-//		break ;
-//	}
 
-//	if (iEvent<nListJets){
-//		std::cout<<"\tno.\t\tid\t\tpz\t\tpt\t\teta\t\tphi\n"<<"\t"<<iEvent<<"\t\t"<<idmp<<"\t\t"<<pTemp.pz()<<"\t\t"<<ptmp<<"\t\t"<<etamp<<"\t\t"<<phimp<<endl;
-		// }
     }
     for (int i = 0; i < event.size(); ++i) if (event[i].isFinal()) {
 
@@ -167,16 +162,20 @@ ofstream myfile;
         
         vector<fastjet::PseudoJet> constituents
           = sortedJets[i].constituents();
-        std::cout << "===========================================================================\nsortedJets\tpt\teta\tphi=\t"<<sortedJets[i].pt()<<"\t"<<sortedJets[i].eta()<<"\t"<<sortedJets[i].phi()<<endl;
-	//test
+	//print jet kenetic
+        std::cout << "===========================================================================\nsortedJets\tpt\teta\tphi\tconstituents_size=\t"<<sortedJets[i].pt()<<"\t"<<sortedJets[i].eta()<<"\t"<<sortedJets[i].phi()
+			<<"\t"<<constituents.size()<<endl;
+	//match jet with gluon/quark eta and phi.
 	if(deltaR(phi0,sortedJets[i].phi(),eta0,sortedJets[i].eta())<d_R){
-		std::cout<<"gluonjet"<<endl;
-		myfile<<"\n"<<sortedJets[i].pt()<<"\t"<<sortedJets[i].eta()<<"\t"<<sortedJets[i].phi()<<endl;
+		std::cout<<"gluonjet"<<endl;  //print ''gluon jet''
+		myfile<<"\n"<<sortedJets[i].e()<<"\t"<<sortedJets[i].pt()<<"\t"<<sortedJets[i].eta()<<"\t"<<sortedJets[i].phi()<<"\t"<<constituents.size()<<"\n"<<endl; //save jet pt eta phi in myfile
 		
 		for (int j=0;j<int(constituents.size()); ++j){
+			
 			std::cout<<"\nJet_constituent\tpt\teta\tphi\tpID=\t"<<constituents[j].pt()<<"\t"<<constituents[j].eta()<<
-			"\t"<<constituents[j].phi()<<"\t"<<constituents[j].user_info<Particle>().name()<<endl;
-			myfile<<constituents[j].pt()<<"\t"<<constituents[j].eta()<<"\t"<<constituents[j].phi()<<endl;
+			"\t"<<constituents[j].phi()<<"\t"<<constituents[j].user_info<Particle>().name()<<endl;   
+			myfile<<constituents[j].e()<<"\t"<<constituents[j].pt()<<"\t"<<constituents[j].eta()<<"\t"<<constituents[j].phi()<<endl; //save jet constituents pt eta phi in myfile
+			
 			}
 	}
         fastjet::PseudoJet hardest
