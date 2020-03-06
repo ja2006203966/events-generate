@@ -15,11 +15,22 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <cmath>
+#include <set>
 using namespace std;
 using namespace Pythia8;
+double deltaPHI(double phi1,double phi2){
+	double R;
+	R=phi1-phi2;
+	if (R>M_PI){R=R-M_PI;
+	}
+	if (R<-M_PI){R=R+M_PI;
+	}
+	return R;
+}
 double deltaR(double phi1,double phi2,double eta1,double eta2){
 	double R;
-	R=sqrt(pow(phi1-phi2,2)+pow(eta1-eta2,2));
+	R=sqrt(pow(deltaPHI(phi1,phi2),2)+pow(eta1-eta2,2));
 	return R;
 }
 void print(std::vector<int> const &input)
@@ -31,7 +42,7 @@ void print(std::vector<int> const &input)
 
 int main() {
   // Number of events, generated and listed ones (for jets).
-  int  nEvent = 50000;
+  int  nEvent = 20;
   int nListJets = nEvent; //this value should <= nEvent
   
   // Select common parameters for SlowJet and FastJet analyses.
@@ -41,6 +52,14 @@ int main() {
   double pTMax   = 550.0;    // Max jet pT.(not applied)
   double etaMax  = 2.0;    // Pseudorapidity range of detector.
   double d_R     = 0.2;    //matching radius for tagging jet 
+  int gg         = 21;
+  set<int> qq;
+  qq.insert(qq.begin(),1);
+  qq.insert(qq.begin(),-1);
+  qq.insert(qq.begin(),2);
+  qq.insert(qq.begin(),-2);
+  qq.insert(qq.begin(),3);
+  qq.insert(qq.begin(),-3);
 //  int    xjet    = 21;      //finding x jet (x=gluon or quark)
 //  int    xjetp              //out put x jet nth vector component
   int    select  = 2;      // Which particles are included?
@@ -61,7 +80,7 @@ int main() {
 //========================================================================================
   //open file
 ofstream myfile;
-  myfile.open ("myeventsqq.txt");//qq for quark ,gg for gluon
+  myfile.open ("myevents.txt");//qq for quark ,gg for gluon
 
 
 //========================================================================================
@@ -79,37 +98,52 @@ ofstream myfile;
   fastjet::JetDefinition jetDef(fastjet::genkt_algorithm, R, power);
   std::vector <fastjet::PseudoJet> fjInputs;
 
- std::cout<<"===================================================================eventsize========================================================================================================"<<
-		event.size()<<endl;
+ std::cout<<"===================================================================111111111111111111========================================================================================================"<<
+		endl;
 
   // Begin event loop. Generate event. Skip if error.
   for (int iEvent = 0; iEvent < nEvent; ++iEvent) {
     clock_t befGen = clock();
     if (!pythia.next()) continue;
     clock_t aftGen = clock();
+    
 
    
    
- std::cout<<"===================================================================eventsize========================================================================================================"<<
-		event.size()<<endl;
+ std::cout<<"===================================================================2222222222222222222========================================================================================================"<<
+		endl;
 
     // Begin FastJet analysis: extract particles from event record.
     clock_t befFast = clock();
     fjInputs.resize(0);
     Vec4   pTemp;
-    double mTemp,ptmp,etamp,phimp,idmp,phi0,eta0;
-    phi0  = event[6].phi();  //6 is produce gluon/quark event index
-    eta0  = event[6].eta();
+    vector<double> phi0, eta0;
+    double mTemp,ptmp,etamp,phimp,idmp;
+    std::set<int>::iterator qq_index;
     int nAnalyze = 0;
+    
     //to find g for matching jets
-    for (int i = 0; i < 10; ++i){
-	ptmp  = event[i].pT();
-	etamp  = event[i].eta();
-	phimp  = event[i].phi();
-	idmp  = event[i].id();
-	pTemp = event[i].p();
+    
+    for (int i = 0; i < event.size(); ++i){
+	//qq_index=qq.find(event[i].id());
+ 	//std::cout<<"=====================qq_index==========================="<<*qq_index<<endl;
+	
+	if (event[i].status()==23){
+		std::cout<<"=====================status==========================="<<event[i].status()<<endl;
+		if(qq.find(event[i].id())!=qq.end()){    //for qq (qq.find(event[i].id())!=qq.end() ) , for gg event[i].id()==21
+			std::cout<<"=====================ture==========================="<<endl;
+			eta0.insert(eta0.begin(), event[i].eta());
+			phi0.insert(phi0.begin(), event[i].phi());
+		}
+	
+	}
+	
 
     }
+    
+    std::cout<<"===============================================================================phi0size==============================================================================================="<<
+			phi0.size()<<endl;
+
     for (int i = 0; i < event.size(); ++i) if (event[i].isFinal()) {
 
       // Require visible/charged particles inside detector.
@@ -158,6 +192,7 @@ ofstream myfile;
            << "      hardest  pT in neutral " << endl
            << "                                                       "
            << "  constituent        hadrons " << endl;
+   
       for (int i = 0; i < int(sortedJets.size()); ++i) {
         
         vector<fastjet::PseudoJet> constituents
@@ -166,7 +201,8 @@ ofstream myfile;
         std::cout << "===========================================================================\nsortedJets\tpt\teta\tphi\tconstituents_size=\t"<<sortedJets[i].pt()<<"\t"<<sortedJets[i].eta()<<"\t"<<sortedJets[i].phi()
 			<<"\t"<<constituents.size()<<endl;
 	//match jet with gluon/quark eta and phi.
-	if(deltaR(phi0,sortedJets[i].phi(),eta0,sortedJets[i].eta())<d_R){
+	for (int j = 0;j < int(phi0.size()); ++j)
+	if(deltaR(phi0[j],sortedJets[i].phi(),eta0[j],sortedJets[i].eta())<d_R){
 		std::cout<<"gluonjet"<<endl;  //print ''gluon jet''
 		myfile<<"\n"<<sortedJets[i].e()<<"\t"<<sortedJets[i].pt()<<"\t"<<sortedJets[i].eta()<<"\t"<<sortedJets[i].phi()<<"\t"<<constituents.size()<<"\n"<<endl; //save jet pt eta phi in myfile
 		
