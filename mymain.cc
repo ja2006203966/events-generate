@@ -146,13 +146,13 @@ ofstream myout;
 //    }	
 myout<<"=========================event-trace===============================\n"<<
 	"no.\tpid\tstatus\tmother1\tmother2\tdaughter1\tdaughter2\tpt\teta\tphi\n"<<
-	idx<<"\t"<<event[idx].name()<<"\t"<<event[idx].status()<<"\t"<<event[idx].mother1()<<" "<<event[idx].mother2()<<"\t"<<event[idx].daughter1()<<" "<<event[idx].daughter2()<<"\t"
+	idx<<"\t"<<event[idx].name()<<"\t"<<event[idx].status()<<"\t"<<event[idx].mother1()<<"\t"<<event[idx].mother2()<<"\t"<<event[idx].daughter1()<<"\t\t"<<event[idx].daughter2()<<"\t"
 	<<event[idx].pT()<<"\t"<<event[idx].eta()<<"\t"<<event[idx].phi()<<"\t"
 	<<endl;
 
    while (event[idx].daughter1()==event[idx].daughter2()){
    idx=event[idx].daughter1();
-   myout<<idx<<"\t"<<event[idx].name()<<"\t"<<event[idx].status()<<"\t"<<event[idx].mother1()<<" "<<event[idx].mother2()<<"\t"<<event[idx].daughter1()<<" "<<event[idx].daughter2()<<"\t"
+   myout<<idx<<"\t"<<event[idx].name()<<"\t"<<event[idx].status()<<"\t"<<event[idx].mother1()<<"\t"<<event[idx].mother2()<<"\t"<<event[idx].daughter1()<<"\t\t"<<event[idx].daughter2()<<"\t"
 	<<event[idx].pT()<<"\t"<<event[idx].eta()<<"\t"<<event[idx].phi()<<"\t"
 	<<endl;
 
