@@ -119,54 +119,83 @@ ofstream myout;
     fjInputs.resize(0);
     Vec4   pTemp;
     vector<double> phi0, eta0;
+    int idx=6;
     double mTemp,ptmp,etamp,phimp,idmp;
     std::set<int>::iterator qq_index;
     int nAnalyze = 0;
      //Show the haedest event
      std::cout<<"============================hardest-event================================"<<endl;
      std::cout<<"no.\teventid\tstatus\tmothers\t\tdaughters\tpT\teta\t\phi\n"<<endl;
+    // myout<<"============================hardest-event================================"<<endl;
+    // myout<<"no.\teventid\tstatus\tmothers\t\tdaughters\tpT\teta\t\phi\n"<<endl;
      for (int i = 0; i < event.size(); ++i){
 	if (abs(event[i].status())<=30){	
 		std::cout<<i<<"\t"<<event[i].name()<<"\t"<<event[i].status()<<"\t"<<event[i].mother1()<<"   "<<event[i].mother2()<<"\t\t"<<event[i].daughter1()<<"   "<<event[i].daughter2()<<"\t\t"<<event[i].pT()<<"\t"<<event[i].eta()<<"\t"<<event[i].phi()<<endl;
+      //          myout<<i<<"\t"<<event[i].name()<<"\t"<<event[i].status()<<"\t"<<event[i].mother1()<<"   "<<event[i].mother2()<<"\t\t"<<event[i].daughter1()<<"   "<<event[i].daughter2()<<"\t\t"<<event[i].pT()<<"\t"<<event[i].eta()<<"\t"<<event[i].phi()<<endl;
 	}
 	
 
     }
     
     std::cout<<"=========================event-END==============================="<<endl;
-    myout<<"=========================event-END==============================="<<endl;
+    //myout<<"=========================event-END==============================="<<endl;
+    std::cout<<"============================whole-event================================"<<endl;
+//    for (int i = 0; i < event.size(); ++i){
+//                myout<<i<<"\t"<<event[i].name()<<"\t"<<event[i].status()<<"\t"<<event[i].mother1()<<"   "<<event[i].mother2()<<"\t\t"<<event[i].daughter1()<<"   "<<event[i].daughter2()<<"\t\t"<<event[i].pT()<<"\t"<<event[i].eta()<<"\t"<<event[i].phi()<<endl;
+   
+//    }	
+myout<<"=========================event-trace===============================\n"<<
+	"no.\tpid\tstatus\tmother1\tmother2\tdaughter1\tdaughter2\tpt\teta\tphi\n"<<
+	idx<<"\t"<<event[idx].name()<<"\t"<<event[idx].status()<<"\t"<<event[idx].mother1()<<" "<<event[idx].mother2()<<"\t"<<event[idx].daughter1()<<" "<<event[idx].daughter2()<<"\t"
+	<<event[idx].pT()<<"\t"<<event[idx].eta()<<"\t"<<event[idx].phi()<<"\t"
+	<<endl;
+
+   while (event[idx].daughter1()==event[idx].daughter2()){
+   idx=event[idx].daughter1();
+   myout<<idx<<"\t"<<event[idx].name()<<"\t"<<event[idx].status()<<"\t"<<event[idx].mother1()<<" "<<event[idx].mother2()<<"\t"<<event[idx].daughter1()<<" "<<event[idx].daughter2()<<"\t"
+	<<event[idx].pT()<<"\t"<<event[idx].eta()<<"\t"<<event[idx].phi()<<"\t"
+	<<endl;
+
+   	if(event[idx].daughter1()!=event[idx].daughter2()){
+	eta0.insert(eta0.begin(), event[idx].eta());
+	phi0.insert(phi0.begin(), event[idx].phi());
+        break;
+	}
+
+   }  
+
+myout<<"=========================event-End==============================="<<endl;
+
 
     //to find g for matching jets
-    std::cout<<"================================status-23==================================="<<endl;
-    myout<<"================================status-23==================================="<<endl;
-    std::cout<<"no.\teventid\tstatus\tmothers\t\tdaughters\tpT\teta\t\phi\n"<<endl;
-    myout<<"no.\teventid\tstatus\tmothers\t\tdaughters\tpT\teta\t\phi\n"<<endl;
-    for (int i = 0; i < event.size(); ++i){
-	//qq_index=qq.find(event[i].id());
- 	//std::cout<<"=====================qq_index==========================="<<*qq_index<<endl;
-	
-	if (event[i].status()==-23){
+    //std::cout<<"================================status-23==================================="<<endl;
+    //myout<<"================================status-23==================================="<<endl;
+    //std::cout<<"no.\teventid\tstatus\tmothers\t\tdaughters\tpT\teta\t\phi\n"<<endl;
+    //myout<<"no.\teventid\tstatus\tmothers\t\tdaughters\tpT\teta\t\phi\n"<<endl;
+
+//    for (int i = 0; i < event.size(); ++i){
+//	
+//	if (event[i].status()==-23){
 		
-		std::cout<<i<<"\t"<<event[i].name()<<"\t"<<event[i].status()<<"\t"<<event[i].mother1()<<"   "<<event[i].mother2()<<"\t\t"<<event[i].daughter1()<<"   "<<event[i].daughter2()<<"\t\t"<<event[i].pT()<<"\t"<<event[i].eta()<<"\t"<<event[i].phi()<<endl;
+//		std::cout<<i<<"\t"<<event[i].name()<<"\t"<<event[i].status()<<"\t"<<event[i].mother1()<<"   "<<event[i].mother2()<<"\t\t"<<event[i].daughter1()<<"   "<<event[i].daughter2()<<"\t\t"<<event[i].pT()<<"\t"<<event[i].eta()<<"\t"<<event[i].phi()<<endl;
 
-		 myout<<i<<"\t"<<event[i].name()<<"\t"<<event[i].status()<<"\t"<<event[i].mother1()<<"   "<<event[i].mother2()<<"\t\t"<<event[i].daughter1()<<"   "<<event[i].daughter2()<<"\t\t"<<event[i].pT()<<"\t"<<event[i].eta()<<"\t"<<event[i].phi()<<endl;
-		if(qq.find(event[i].id())!=qq.end()){    //for qq (qq.find(event[i].id())!=qq.end() ) , for gg event[i].id()==21
-			std::cout<<"=====================ture==========================="<<endl;
-			myout<<"=====================ture==========================="<<endl;
-			eta0.insert(eta0.begin(), event[i].eta());
-			phi0.insert(phi0.begin(), event[i].phi());
-		}
+//		 myout<<i<<"\t"<<event[i].name()<<"\t"<<event[i].status()<<"\t"<<event[i].mother1()<<"   "<<event[i].mother2()<<"\t\t"<<event[i].daughter1()<<"   "<<event[i].daughter2()<<"\t\t"<<event[i].pT()<<"\t"<<event[i].eta()<<"\t"<<event[i].phi()<<endl;
+//		if(qq.find(event[i].id())!=qq.end()){    //for qq (qq.find(event[i].id())!=qq.end() ) , for gg event[i].id()==21
+//			std::cout<<"=====================ture==========================="<<endl;
+//			myout<<"=====================ture==========================="<<endl;
+//			eta0.insert(eta0.begin(), event[i].eta());
+//			phi0.insert(phi0.begin(), event[i].phi());
+//		}
 	
-	}
+//	}
 	
-
-    }
+   // }
     std::cout<<"==============================status-23-END=============================="<<endl;
-    myout<<"==============================status-23-END=============================="<<endl;
+    //myout<<"==============================status-23-END=============================="<<endl;
     std::cout<<"===============================================================================phi0size==============================================================================================="<<
 			phi0.size()<<endl;
-    myout<<"===============================================================================phi0size==============================================================================================="<<
-			phi0.size()<<endl;
+   // myout<<"===============================================================================phi0size==============================================================================================="<<
+	//		phi0.size()<<endl;
     for (int i = 0; i < event.size(); ++i) if (event[i].isFinal()) {
 
       // Require visible/charged particles inside detector.
@@ -223,14 +252,17 @@ ofstream myout;
 	//print jet kenetic
         std::cout << "===========================================================================\nsortedJets\tpt\teta\tphi\tconstituents_size=\t"<<sortedJets[i].pt()<<"\t"<<sortedJets[i].eta()<<"\t"<<sortedJets[i].phi()
 			<<"\t"<<constituents.size()<<endl;
-        myout<< "===========================================================================\nsortedJets\tpt\teta\tphi\tconstituents_size=\t"<<sortedJets[i].pt()<<"\t"<<sortedJets[i].eta()<<"\t"<<sortedJets[i].phi()
-			<<"\t"<<constituents.size()<<endl;
+        myout<<"===========================================================================\nsortedJets\tpt\teta\tphi\tconstituents_size=\t"<<sortedJets[i].pt()<<
+		"\t"<<sortedJets[i].eta()<<"\t"<<sortedJets[i].phi()
+		<<"\t"<<constituents.size()<<endl;
 	//match jet with gluon/quark eta and phi.
 	for (int j = 0;j < int(phi0.size()); ++j)
 	if(deltaR(phi0[j],sortedJets[i].phi(),eta0[j],sortedJets[i].eta())<d_R){
 		std::cout<<"gluonjet"<<endl;  //print ''gluon jet''
 		myfile<<"\n"<<sortedJets[i].e()<<"\t"<<sortedJets[i].pt()<<"\t"<<sortedJets[i].eta()<<"\t"<<sortedJets[i].phi()<<"\t"<<constituents.size()<<"\n"<<endl; //save jet pt eta phi in myfile
-		myout<<"gluonjet"<<endl;  //print ''gluon jet''
+		//myout<<"gluonjet"<<endl;  //print ''gluon jet''
+
+		myout<<"\n"<<sortedJets[i].e()<<"\t"<<sortedJets[i].pt()<<"\t"<<sortedJets[i].eta()<<"\t"<<sortedJets[i].phi()<<"\t"<<constituents.size()<<"\n"<<endl; 
 		for (int j=0;j<int(constituents.size()); ++j){
 			
 			std::cout<<"\nJet_constituent\tpt\teta\tphi\tpID=\t"<<constituents[j].pt()<<"\t"<<constituents[j].eta()<<
