@@ -43,7 +43,8 @@ void print(std::vector<int> const &input)
 
 int main() {
   // Number of events, generated and listed ones (for jets).
-  int  nEvent = 30;
+  //int ncut = 50000;
+  int  nEvent = 100000;
   int nListJets = nEvent; //this value should <= nEvent
   
   // Select common parameters for SlowJet and FastJet analyses.
@@ -53,14 +54,16 @@ int main() {
   double pTMax   = 550.0;    // Max jet pT.(not applied)
   double etaMax  = 2.0;    // Pseudorapidity range of detector.
   double d_R     = 0.2;    //matching radius for tagging jet 
-  int gg         = 21;
-  set<int> qq;
-  qq.insert(qq.begin(),1);
-  qq.insert(qq.begin(),-1);
-  qq.insert(qq.begin(),2);
-  qq.insert(qq.begin(),-2);
-  qq.insert(qq.begin(),3);
-  qq.insert(qq.begin(),-3);
+  int numcjet = 0;
+  int numsjet = 0;
+  
+//  set<int> qq;
+//  qq.insert(qq.begin(),1);
+//  qq.insert(qq.begin(),-1);
+//  qq.insert(qq.begin(),2);
+//  qq.insert(qq.begin(),-2);
+//  qq.insert(qq.begin(),3);
+//  qq.insert(qq.begin(),-3);
 //  int    xjet    = 21;      //finding x jet (x=gluon or quark)
 //  int    xjetp              //out put x jet nth vector component
   int    select  = 2;      // Which particles are included?
@@ -68,22 +71,24 @@ int main() {
   
   // Generator. Process selection. Tevatron initialization. Histogram.
   Pythia pythia;
-  Event& event = pythia.event;
   
+  Event& event = pythia.event;
+  pythia.readString("Random:setSeed = on");
+  pythia.readString("Random:seed = 0");
   pythia.readString("Beams:eCM = 14000.");
-  pythia.readString("WeakBosonAndParton:qg2gmZq = on");  //"WeakBosonAndParton:qqbar2gmZg = on" for z+g,WeakBosonAndParton:qg2gmZq for z+q
+  pythia.readString("WeakBosonAndParton:qqbar2gmZg = on");  //"WeakBosonAndParton:qqbar2gmZg = on" for z+g,WeakBosonAndParton:qg2gmZq for z+q
   pythia.readString("PhaseSpace:pTHatMin = 500.");  //PhaseSpace:pTHatMax   (default = -1.)
   pythia.readString("PhaseSpace:pTHatMax = 550.");
- 
+  
   
 
   pythia.init();
 //========================================================================================
   //open file
 ofstream myfile;
-  myfile.open ("myevents.txt");//qq for quark ,gg for gluon
-ofstream myout;
-  myout.open ("myout.txt");//qq for quark ,gg for gluon
+  myfile.open ("myeventsgg3.txt");//qq for quark ,gg for gluon
+//ofstream myout;
+  //myout.open ("myout.txt");//qq for quark ,gg for gluon
 //========================================================================================
 
 
@@ -103,16 +108,26 @@ ofstream myout;
 		endl;
 
   // Begin event loop. Generate event. Skip if error.
-  for (int iEvent = 0; iEvent < nEvent; ++iEvent) {
-    clock_t befGen = clock();
+for (int iEvent = 0; iEvent < nEvent; ++iEvent) {
+    //pythia.next();
+   // if (iEvent < ncut){
+//	continue;
+//    }
+
+   // clock_t befGen = clock();
     if (!pythia.next()) continue;
-    clock_t aftGen = clock();
     
+    //Event& event = pythia.event;
+   // clock_t aftGen = clock();
+    
+    if(iEvent%1000==0){
+    	std::cout<<iEvent<<"/"<<nEvent<<"\t\tcluster_num = "<<numcjet<<"\tselcet_num = "<<numsjet<<endl;
+    }
 
    
    
- std::cout<<"===================================================================2222222222222222222========================================================================================================"<<
-		endl;
+// std::cout<<"===================================================================2222222222222222222========================================================================================================"<<
+//		endl;
 
     // Begin FastJet analysis: extract particles from event record.
     clock_t befFast = clock();
@@ -124,37 +139,39 @@ ofstream myout;
     std::set<int>::iterator qq_index;
     int nAnalyze = 0;
      //Show the haedest event
-     std::cout<<"============================hardest-event================================"<<endl;
-     std::cout<<"no.\teventid\tstatus\tmothers\t\tdaughters\tpT\teta\t\phi\n"<<endl;
+//     std::cout<<"============================hardest-event================================"<<endl;
+//     std::cout<<"no.\teventid\tstatus\tmothers\t\tdaughters\tpT\teta\t\phi\n"<<endl;
     // myout<<"============================hardest-event================================"<<endl;
     // myout<<"no.\teventid\tstatus\tmothers\t\tdaughters\tpT\teta\t\phi\n"<<endl;
-     for (int i = 0; i < event.size(); ++i){
-	if (abs(event[i].status())<=30){	
-		std::cout<<i<<"\t"<<event[i].name()<<"\t"<<event[i].status()<<"\t"<<event[i].mother1()<<"   "<<event[i].mother2()<<"\t\t"<<event[i].daughter1()<<"   "<<event[i].daughter2()<<"\t\t"<<event[i].pT()<<"\t"<<event[i].eta()<<"\t"<<event[i].phi()<<endl;
+//     for (int i = 0; i < event.size(); ++i){
+//	if (abs(event[i].status())<=30){	
+//		std::cout<<i<<"\t"<<event[i].name()<<"\t"<<event[i].status()<<"\t"<<event[i].mother1()<<"   "<<event[i].mother2()<<"\t\t"<<event[i].daughter1()<<"   "<<event[i].daughter2()<<"\t\t"<<event[i].pT()<<"\t"<<event[i].eta()<<"\t"<<event[i].phi()<<endl;
       //          myout<<i<<"\t"<<event[i].name()<<"\t"<<event[i].status()<<"\t"<<event[i].mother1()<<"   "<<event[i].mother2()<<"\t\t"<<event[i].daughter1()<<"   "<<event[i].daughter2()<<"\t\t"<<event[i].pT()<<"\t"<<event[i].eta()<<"\t"<<event[i].phi()<<endl;
-	}
+//	}
 	
 
-    }
+//    }
     
-    std::cout<<"=========================event-END==============================="<<endl;
+//    std::cout<<"=========================event-END==============================="<<endl;
     //myout<<"=========================event-END==============================="<<endl;
-    std::cout<<"============================whole-event================================"<<endl;
+   // std::cout<<"============================whole-event================================"<<endl;
 //    for (int i = 0; i < event.size(); ++i){
 //                myout<<i<<"\t"<<event[i].name()<<"\t"<<event[i].status()<<"\t"<<event[i].mother1()<<"   "<<event[i].mother2()<<"\t\t"<<event[i].daughter1()<<"   "<<event[i].daughter2()<<"\t\t"<<event[i].pT()<<"\t"<<event[i].eta()<<"\t"<<event[i].phi()<<endl;
    
 //    }	
-myout<<"=========================event-trace===============================\n"<<
-	"no.\tpid\tstatus\tmother1\tmother2\tdaughter1\tdaughter2\tpt\teta\tphi\n"<<
-	idx<<"\t"<<event[idx].name()<<"\t"<<event[idx].status()<<"\t"<<event[idx].mother1()<<"\t"<<event[idx].mother2()<<"\t"<<event[idx].daughter1()<<"\t\t"<<event[idx].daughter2()<<"\t"
-	<<event[idx].pT()<<"\t"<<event[idx].eta()<<"\t"<<event[idx].phi()<<"\t"
-	<<endl;
+
+//std::cout<<"=========================event-trace===============================\n"<<
+//	"no.\tpid\tstatus\tmother1\tmother2\tdaughter1\tdaughter2\tpt\t\teta\t\tphi\n"<<
+//	idx<<"\t"<<event[idx].name()<<"\t"<<event[idx].status()<<"\t"<<event[idx].mother1()<<"\t"<<event[idx].mother2()<<"\t"<<event[idx].daughter1()<<"\t\t"<<event[idx].daughter2()<<"\t\t"
+//	<<event[idx].pT()<<"\t\t"<<event[idx].eta()<<"\t   "<<event[idx].phi()<<"\t"
+//	<<endl;
 
    while (event[idx].daughter1()==event[idx].daughter2()){
-   idx=event[idx].daughter1();
-   myout<<idx<<"\t"<<event[idx].name()<<"\t"<<event[idx].status()<<"\t"<<event[idx].mother1()<<"\t"<<event[idx].mother2()<<"\t"<<event[idx].daughter1()<<"\t\t"<<event[idx].daughter2()<<"\t"
-	<<event[idx].pT()<<"\t"<<event[idx].eta()<<"\t"<<event[idx].phi()<<"\t"
-	<<endl;
+   	idx=event[idx].daughter1();
+
+//   	std::cout<<idx<<"\t"<<event[idx].name()<<"\t"<<event[idx].status()<<"\t"<<event[idx].mother1()<<"\t"<<event[idx].mother2()<<"\t"<<event[idx].daughter1()<<"\t\t"<<event[idx].daughter2()<<"\t\t"
+//	<<event[idx].pT()<<"\t\t"<<event[idx].eta()<<"\t   "<<event[idx].phi()<<"\t"
+//	<<endl;
 
    	if(event[idx].daughter1()!=event[idx].daughter2()){
 	eta0.insert(eta0.begin(), event[idx].eta());
@@ -164,40 +181,18 @@ myout<<"=========================event-trace===============================\n"<<
 
    }  
 
-myout<<"=========================event-End==============================="<<endl;
+//myout<<"=========================event-End==============================="<<endl;
 
 
-    //to find g for matching jets
-    //std::cout<<"================================status-23==================================="<<endl;
-    //myout<<"================================status-23==================================="<<endl;
-    //std::cout<<"no.\teventid\tstatus\tmothers\t\tdaughters\tpT\teta\t\phi\n"<<endl;
-    //myout<<"no.\teventid\tstatus\tmothers\t\tdaughters\tpT\teta\t\phi\n"<<endl;
 
-//    for (int i = 0; i < event.size(); ++i){
-//	
-//	if (event[i].status()==-23){
-		
-//		std::cout<<i<<"\t"<<event[i].name()<<"\t"<<event[i].status()<<"\t"<<event[i].mother1()<<"   "<<event[i].mother2()<<"\t\t"<<event[i].daughter1()<<"   "<<event[i].daughter2()<<"\t\t"<<event[i].pT()<<"\t"<<event[i].eta()<<"\t"<<event[i].phi()<<endl;
-
-//		 myout<<i<<"\t"<<event[i].name()<<"\t"<<event[i].status()<<"\t"<<event[i].mother1()<<"   "<<event[i].mother2()<<"\t\t"<<event[i].daughter1()<<"   "<<event[i].daughter2()<<"\t\t"<<event[i].pT()<<"\t"<<event[i].eta()<<"\t"<<event[i].phi()<<endl;
-//		if(qq.find(event[i].id())!=qq.end()){    //for qq (qq.find(event[i].id())!=qq.end() ) , for gg event[i].id()==21
-//			std::cout<<"=====================ture==========================="<<endl;
-//			myout<<"=====================ture==========================="<<endl;
-//			eta0.insert(eta0.begin(), event[i].eta());
-//			phi0.insert(phi0.begin(), event[i].phi());
-//		}
-	
-//	}
-	
-   // }
-    std::cout<<"==============================status-23-END=============================="<<endl;
+    //std::cout<<"==============================status-23-END=============================="<<endl;
     //myout<<"==============================status-23-END=============================="<<endl;
-    std::cout<<"===============================================================================phi0size==============================================================================================="<<
-			phi0.size()<<endl;
+//    std::cout<<"===============================================================================phi0size==============================================================================================="<<
+//			phi0.size()<<endl;
    // myout<<"===============================================================================phi0size==============================================================================================="<<
 	//		phi0.size()<<endl;
     for (int i = 0; i < event.size(); ++i) if (event[i].isFinal()) {
-
+      
       // Require visible/charged particles inside detector.
       if      (select > 2 &&  event[i].isNeutral() ) continue;
       else if (select == 2 && !event[i].isVisible() ) continue;
@@ -238,41 +233,47 @@ myout<<"=========================event-End==============================="<<endl
     // Note: the final few columns are illustrative of what information
     // can be extracted, but does not exhaust the possibilities.
     if (iEvent < nListJets) {
-      cout << "\n --------  FastJet jets, p = " << setw(2) << power
-           << "  --------------------------------------------------\n\n "
-           << "  i         pT        y      phi  mult chgmult photons"
-           << "      hardest  pT in neutral " << endl
-           << "                                                       "
-           << "  constituent        hadrons " << endl;
+//      cout << "\n --------  FastJet jets, p = " << setw(2) << power
+//           << "  --------------------------------------------------\n\n "
+//           << "  i         pT        y      phi  mult chgmult photons"
+//           << "      hardest  pT in neutral " << endl
+//           << "                                                       "
+//           << "  constituent        hadrons " << endl;
    
       for (int i = 0; i < int(sortedJets.size()); ++i) {
-        
+      	numcjet = numcjet +1;
+        if(sortedJets[i].pt() >= pTMax){ continue;}
         vector<fastjet::PseudoJet> constituents
           = sortedJets[i].constituents();
 	//print jet kenetic
-        std::cout << "===========================================================================\nsortedJets\tpt\teta\tphi\tconstituents_size=\t"<<sortedJets[i].pt()<<"\t"<<sortedJets[i].eta()<<"\t"<<sortedJets[i].phi()
-			<<"\t"<<constituents.size()<<endl;
-        myout<<"===========================================================================\nsortedJets\tpt\teta\tphi\tconstituents_size=\t"<<sortedJets[i].pt()<<
-		"\t"<<sortedJets[i].eta()<<"\t"<<sortedJets[i].phi()
-		<<"\t"<<constituents.size()<<endl;
+//        std::cout << "===========================================================================\nsortedJets\tpt\teta\tphi\tconstituents_size=\t"<<sortedJets[i].pt()<<"\t"<<sortedJets[i].eta()<<"\t"<<sortedJets[i].phi()
+//			<<"\t"<<constituents.size()<<endl;
+       // myout<<"===========================================================================\nsortedJets\tpt\teta\tphi\tconstituents_size=\t"<<sortedJets[i].pt()<<
+	//	"\t"<<sortedJets[i].eta()<<"\t"<<sortedJets[i].phi()
+	//	<<"\t"<<constituents.size()<<endl;
+
 	//match jet with gluon/quark eta and phi.
-	for (int j = 0;j < int(phi0.size()); ++j)
-	if(deltaR(phi0[j],sortedJets[i].phi(),eta0[j],sortedJets[i].eta())<d_R){
-		std::cout<<"gluonjet"<<endl;  //print ''gluon jet''
-		myfile<<"\n"<<sortedJets[i].e()<<"\t"<<sortedJets[i].pt()<<"\t"<<sortedJets[i].eta()<<"\t"<<sortedJets[i].phi()<<"\t"<<constituents.size()<<"\n"<<endl; //save jet pt eta phi in myfile
-		//myout<<"gluonjet"<<endl;  //print ''gluon jet''
+	for (int j = 0;j < int(phi0.size()); ++j){
+		
+		if(deltaR(phi0[j],sortedJets[i].phi(),eta0[j],sortedJets[i].eta())<d_R){
+			numsjet = numsjet + 1;
 
-		myout<<"\n"<<sortedJets[i].e()<<"\t"<<sortedJets[i].pt()<<"\t"<<sortedJets[i].eta()<<"\t"<<sortedJets[i].phi()<<"\t"<<constituents.size()<<"\n"<<endl; 
-		for (int j=0;j<int(constituents.size()); ++j){
+		//	std::cout<<"gluonjet"<<endl;  //print ''gluon jet''
+			myfile<<"\n"<<sortedJets[i].e()<<"\t"<<sortedJets[i].pt()<<"\t"<<sortedJets[i].eta()<<"\t"<<sortedJets[i].phi()<<"\t"<<constituents.size()<<"\n"<<endl; //save jet pt eta phi in myfile
+			//myout<<"gluonjet"<<endl;  //print ''gluon jet''
+
+			//myout<<"\n"<<sortedJets[i].e()<<"\t"<<sortedJets[i].pt()<<"\t"<<sortedJets[i].eta()<<"\t"<<sortedJets[i].phi()<<"\t"<<constituents.size()<<"\n"<<endl; 
+			for (int j=0;j<int(constituents.size()); ++j){
 			
-			std::cout<<"\nJet_constituent\tpt\teta\tphi\tpID=\t"<<constituents[j].pt()<<"\t"<<constituents[j].eta()<<
-			"\t"<<constituents[j].phi()<<"\t"<<constituents[j].user_info<Particle>().name()<<endl;   
-			myfile<<constituents[j].e()<<"\t"<<constituents[j].pt()<<"\t"<<constituents[j].eta()<<"\t"<<constituents[j].phi()<<endl; //save jet constituents pt eta phi in myfile
+		//		std::cout<<"\nJet_constituent\tpt\teta\tphi\tpID=\t"<<constituents[j].pt()<<"\t"<<constituents[j].eta()<<
+		//		"\t"<<constituents[j].phi()<<"\t"<<constituents[j].user_info<Particle>().name()<<endl;   
+				myfile<<constituents[j].e()<<"\t"<<constituents[j].pt()<<"\t"<<constituents[j].eta()<<"\t"<<constituents[j].phi()<<endl; //save jet constituents pt eta phi in myfile
 
-			myout<<"\nJet_constituent\tpt\teta\tphi\tpID=\t"<<constituents[j].pt()<<"\t"<<constituents[j].eta()<<
-			"\t"<<constituents[j].phi()<<"\t"<<constituents[j].user_info<Particle>().name()<<endl;   
+	//			myout<<"\nJet_constituent\tpt\teta\tphi\tpID=\t"<<constituents[j].pt()<<"\t"<<constituents[j].eta()<<
+	//			"\t"<<constituents[j].phi()<<"\t"<<constituents[j].user_info<Particle>().name()<<endl;   
 			
 			}
+		}
 	}
         fastjet::PseudoJet hardest
           = fastjet::SelectorNHardest(1)(constituents)[0];
@@ -290,9 +291,9 @@ myout<<"=========================event-End==============================="<<endl
 //             << setw(13) << hardest.user_info<Particle>().name()
 //             << "     " << setw(10) << neutral_hadrons_pt << endl;
       }
-      myfile << "\t";
-      cout << "\n --------  End FastJet Listing  ------------------"
-           << "---------------------------------" << endl;
+//      myfile << "\t";
+     // cout << "\n --------  End FastJet Listing  ------------------"
+      //     << "---------------------------------" << endl;
     }
   
    
@@ -303,6 +304,6 @@ myout<<"=========================event-End==============================="<<endl
  //=================================================================
    //close file
   myfile.close();
-  myout.close();
+ // myout.close();
   return 0;
 }
